@@ -8,7 +8,7 @@ public class CameraHandle : MonoBehaviour {
 	public const float MINZOOM = 2.7f;
 	public const float MAXZOOM = 6.5f;
 	private const float ZOOMSPEED = 5.0f;
-	private const float TRANSLATESPEED = 5.0f;
+	private const float TRANSLATESPEED = 2.5f;
 
 	private float scroll;
 	private float scrollTarget;
@@ -142,13 +142,9 @@ public class CameraHandle : MonoBehaviour {
 				if(Mathf.Abs(touch0.deltaPosition.x - touch1.deltaPosition.x) < translateTolerance.x &&
 				   Mathf.Abs(touch0.deltaPosition.y - touch1.deltaPosition.y) < translateTolerance.y)
 				{
-					newX = transform.position.x + touch0.deltaPosition.x * 0.5f;
-					newY = transform.position.y + touch1.deltaPosition.y * 0.5f;
-					transform.localPosition = new Vector3(newX,newY,transform.position.z);
-					if (CorrectBound (false))
-						transform.localPosition = originalPosition;
+					newX = transform.position.x + touch0.deltaPosition.x * TRANSLATESPEED;
+					newY = transform.position.y + touch1.deltaPosition.y * TRANSLATESPEED;
 				}
-
 				//else is zooming.
 				else {
 					//Get difference in magniture
@@ -173,6 +169,15 @@ public class CameraHandle : MonoBehaviour {
 
 			} else if(Input.touchCount == 0){
 				translating = false;
+			}
+
+			if(Mathf.Abs(transform.position.x - newX) > 0.1f || Mathf.Abs(transform.position.y - newY) > 0.1f){
+				originalPosition = transform.position;
+				transform.localPosition = new Vector3 (Mathf.Lerp(transform.position.x,newX,Time.deltaTime), 
+				                                       Mathf.Lerp(transform.position.y,newY,Time.deltaTime), 
+				                                       transform.position.z);
+				if (CorrectBound (false))
+					transform.localPosition = originalPosition;
 			}
 		}
 
