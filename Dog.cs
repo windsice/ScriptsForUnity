@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 public class Dog : MonoBehaviour {
 
-	private const string line = "-------------------------------------------------------------------------------------";
+	private const string line = "--------------------------------------------------------------------------";
 	
 	[SerializeField] private Text levelIndication;
 	[SerializeField] private Text ScoreDisplay;
@@ -19,8 +19,8 @@ public class Dog : MonoBehaviour {
 
 	public float PlaceBoneOffsetY = 0.6f;
 	public float PlaceBoneOffsetX = 1.1f;
-	public float PlaceBoneTime = 0.5f;
-	public float MovementSpeed = 3.0f;
+	public float PlaceBoneTime = 0.27f;
+	public float MovementSpeed = 5.0f;
 
 	private Animator anim;
 	private bool GotBone;
@@ -34,7 +34,7 @@ public class Dog : MonoBehaviour {
 	private int level;
 	private int score;
 	private const int MAXLEVEL = 10;
-	private const int SCORESINLEVEL = 1;
+	private const int SCORESINLEVEL = 3;
 	private const float LEVELHEIGHT = 0.8f;
 
 	void Start(){
@@ -50,6 +50,7 @@ public class Dog : MonoBehaviour {
 	}
 
 	void PlaceBone(){
+		//Place bone in the new location
 		bone.transform.rotation = new Quaternion ();
 		if(transform.localScale.x < 0)
 			bone.transform.position = new Vector3 
@@ -58,28 +59,33 @@ public class Dog : MonoBehaviour {
 			bone.transform.position = new Vector3 
 				(transform.position.x+PlaceBoneOffsetX, transform.position.y-PlaceBoneOffsetY, transform.position.z);
 		bone.SetActive (true);
-		Physics2D.IgnoreCollision (boneCollider, dogCollider, true);
+
+		// Get Ready to Run
+		// 1. get next location
+		// 2. update animation
+		// 3. ignore collision
+		Randomized_X = Random.Range (leftBound, rightBound);
+		while(Mathf.Abs(Randomized_X - bone.transform.position.x) < DogBodyLength*3 || Mathf.Abs(Randomized_X - bone.transform.position.x) > 10f+level*2.0f)
+			Randomized_X = Random.Range (leftBound, rightBound);
 		GotBone = true;
 
-		Randomized_X = Random.Range (leftBound, rightBound);
-		while(Mathf.Abs(Randomized_X - bone.transform.position.x) < DogBodyLength*3)
-			Randomized_X = Random.Range (leftBound, rightBound);
-
 		anim.SetTrigger ("Run");
+		
+		Physics2D.IgnoreCollision (boneCollider, dogCollider, true);
 	}
 
 	void OnCollisionEnter2D(Collision2D hit)
 	{
+		//if the dog got the bone, and the bone did past the height level
 		if (hit.gameObject == bone && boneScript.pastLevel) {
-			boneScript.pastLevel = false;
+
 			anim.SetTrigger("GotBone");
 			bone.SetActive(false);
 			Invoke("PlaceBone",PlaceBoneTime);
 			boneScript.GotCatch = true;
 
-			//increment score
+			//increment score, update levelIndication if score met
 			score++;
-
 			if(score % SCORESINLEVEL == 0 && level <= MAXLEVEL && score != 0){
 				level++;
 				levelIndication.transform.position = new Vector3(levelIndication.transform.position.x,levelIndication.transform.position.y + LEVELHEIGHT,levelIndication.transform.position.z);
@@ -92,6 +98,7 @@ public class Dog : MonoBehaviour {
 	}
 
 	void Run(){
+		//running
 		if (transform.position.x > Randomized_X) {
 			transform.Translate (new Vector3 (-Time.deltaTime * MovementSpeed, 0, 0));
 			transform.localScale = new Vector3 (-Mathf.Abs (transform.localScale.x), transform.localScale.y, transform.localScale.z);
@@ -100,10 +107,12 @@ public class Dog : MonoBehaviour {
 			transform.localScale = new Vector3 (Mathf.Abs (transform.localScale.x), transform.localScale.y, transform.localScale.z);
 		}
 
+		//stop
 		if (Mathf.Abs (transform.position.x - Randomized_X) < AcceptableRange) {
 			GotBone = false;
 			anim.SetTrigger("GotBone");
 			Physics2D.IgnoreCollision (boneCollider, dogCollider, false);
+			boneScript.pastLevel = false;
 			boneScript.ReadyToThrow = true;
 		}
 	}
@@ -121,7 +130,8 @@ public class Dog : MonoBehaviour {
 			transform.localScale = new Vector3 (Mathf.Abs (transform.localScale.x), transform.localScale.y, transform.localScale.z);
 		else
 			transform.localScale = new Vector3 (-Mathf.Abs (transform.localScale.x), transform.localScale.y, transform.localScale.z);
-		
+
+		//update levelIndication
 		if (level <= MAXLEVEL)
 			levelIndication.text = "Level " + level + " " + line;
 		else
@@ -139,3 +149,4 @@ public class Dog : MonoBehaviour {
 		boneScript.restartSreen.enabled = false;
 	}
 }
+
