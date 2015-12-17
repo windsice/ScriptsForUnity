@@ -1,6 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
+using System;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 
 public class Dog : MonoBehaviour {
 
@@ -10,6 +13,7 @@ public class Dog : MonoBehaviour {
 	[SerializeField] private Text ScoreDisplay;
 	[SerializeField] private Text BestScoreDisplay;
 	public GameObject bone;
+	public GameObject AwardFace;
 	private BoneThrowing boneScript;
 	public GameObject background;
 	private BoxCollider2D boneCollider;
@@ -33,6 +37,8 @@ public class Dog : MonoBehaviour {
 
 	private int level;
 	private int score;
+	private int bestScore;
+	private string dataPath ;
 	private const int MAXLEVEL = 10;
 	private const int SCORESINLEVEL = 3;
 	private const float LEVELHEIGHT = 0.8f;
@@ -42,11 +48,24 @@ public class Dog : MonoBehaviour {
 		boneCollider = bone.GetComponent<BoxCollider2D> ();
 		boneScript = bone.GetComponent<BoneThrowing> ();
 		dogCollider = GetComponent<BoxCollider2D> ();
+		dataPath = Application.persistentDataPath + "/playerInfo.dat";
+		LoadBestScore();
 
 		reStart ();
 
 		leftBound = background.GetComponent<SpriteRenderer>().bounds.center.x - background.GetComponent<SpriteRenderer>().bounds.size.x / 2.0f + DogBodyLength;
 		rightBound = background.GetComponent<SpriteRenderer>().bounds.center.x + background.GetComponent<SpriteRenderer>().bounds.size.x / 2.0f - DogBodyLength;
+	}
+	
+	public void reStart(){
+		bone.transform.position = new Vector3 (Randomized_X, -3.35f, bone.transform.position.z);
+		transform.position = new Vector3 (Randomized_X, -7.635269f, transform.position.z);
+		score = -1;
+		level = 1;
+		levelIndication.transform.position = new Vector3 (-11f,-8.7f,levelIndication.transform.position.z);
+		boneScript.GotCatch = true;
+		MissThrowFace.SetActive (false);
+		boneScript.restartSreen.enabled = false;
 	}
 
 	void PlaceBone(){
@@ -64,9 +83,9 @@ public class Dog : MonoBehaviour {
 		// 1. get next location
 		// 2. update animation
 		// 3. ignore collision
-		Randomized_X = Random.Range (leftBound, rightBound);
+		Randomized_X = UnityEngine.Random.Range (leftBound, rightBound);
 		while(Mathf.Abs(Randomized_X - bone.transform.position.x) < DogBodyLength*3 || Mathf.Abs(Randomized_X - bone.transform.position.x) > 10f+level*2.0f)
-			Randomized_X = Random.Range (leftBound, rightBound);
+			Randomized_X = UnityEngine.Random.Range (leftBound, rightBound);
 		GotBone = true;
 
 		anim.SetTrigger ("Run");
@@ -78,6 +97,11 @@ public class Dog : MonoBehaviour {
 	{
 		//if the dog got the bone, and the bone did past the height level
 		if (hit.gameObject == bone && boneScript.pastLevel) {
+
+			//show award face
+			AwardFace.SetActive(true);
+			AwardFace.transform.position = new Vector2(transform.position.x,transform.position.y+1.3f);
+			Invoke ("disableAwardFace",0.7f);
 
 			anim.SetTrigger("GotBone");
 			bone.SetActive(false);
@@ -93,8 +117,15 @@ public class Dog : MonoBehaviour {
 
 			//update score in the restart screen
 			ScoreDisplay.text = "Score: " + score;
-			BestScoreDisplay.text = "Best: " + score;
+			if(score > bestScore)
+				bestScore = score;
+			BestScoreDisplay.text = "Best: " + bestScore;
+			SaveBestScore();
 		}
+	}
+	
+	void disableAwardFace(){
+		AwardFace.SetActive (false);
 	}
 
 	void Run(){
@@ -119,6 +150,7 @@ public class Dog : MonoBehaviour {
 
 	// Update is called once per frame
 	void Update () {
+		AwardFace.transform.position = new Vector2(AwardFace.transform.position.x,AwardFace.transform.position.y+0.01f);
 
 		if (GotBone) {
 			Run ();
@@ -138,15 +170,29 @@ public class Dog : MonoBehaviour {
 			levelIndication.text = score + " " + line;
 	}
 
-	public void reStart(){
-		bone.transform.position = new Vector3 (Randomized_X, -3.35f, bone.transform.position.z);
-		transform.position = new Vector3 (Randomized_X, -7.635269f, transform.position.z);
-		score = -1;
-		level = 1;
-		levelIndication.transform.position = new Vector3 (-11f,-8.7f,levelIndication.transform.position.z);
-		boneScript.GotCatch = true;
-		MissThrowFace.SetActive (false);
-		boneScript.restartSreen.enabled = false;
+	private void SaveBestScore(){
+		BinaryFormatter bf = new BinaryFormatter();
+		FileStream file = File.Open (dataPath, FileMode.OpenOrCreate);
+
+		PlayerData data = new PlayerData ();
+		data.score = bestScore;
+		bf.Serialize(file,data);
+		file.Close();
+	}
+
+	private void LoadBestScore(){
+		if(File.Exists(dataPath)){
+			BinaryFormatter bf = new BinaryFormatter();
+			FileStream file = File.Open (dataPath,FileMode.Open);
+			PlayerData data = (PlayerData)bf.Deserialize(file);
+			file.Close();
+
+			bestScore = data.score;
+		}
 	}
 }
 
+[Serializable]
+class PlayerData{
+	public int score;
+}
