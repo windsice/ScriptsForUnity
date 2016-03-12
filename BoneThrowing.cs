@@ -8,6 +8,7 @@ public class BoneThrowing : MonoBehaviour {
 	[SerializeField] private Text SensitivityDisplay;
 	[SerializeField] private Slider SensitivitySlider;
 	public GameObject dog;
+	public GameObject _camera;
 	public Canvas restartSreen;
 	private Dog dogScript;
 
@@ -15,6 +16,7 @@ public class BoneThrowing : MonoBehaviour {
 	private bool rotate;
 
 	public bool ReadyToThrow;
+	public bool throwing;
 	public bool pastLevel;
 	public bool GotCatch;
 	public float groundColliderOffsetX;
@@ -35,6 +37,7 @@ public class BoneThrowing : MonoBehaviour {
 	void Start(){
 		bone = GetComponent<Rigidbody2D> ();
 		dogScript = dog.GetComponent<Dog> ();
+		throwing = false;
 	}
 
 	void OnCollisionStay2D(Collision2D hit)
@@ -52,9 +55,18 @@ public class BoneThrowing : MonoBehaviour {
 		grounded = false;
 	}
 
+
+	void OnMouseDown(){
+		if (Input.GetMouseButtonDown (0) && ReadyToThrow) {
+			mouseXi = Input.mousePosition.x;
+			mouseYi = Input.mousePosition.y;
+			TimeStartThrow = Time.time;
+			throwing = true;
+		}
+	}
+
 	// Update is called once per frame
 	void Update () {
-
 		if (rotate) {
 			if(bone.velocity.x < 0)
 				this.transform.Rotate (new Vector3 (0, 0, rotation));
@@ -62,19 +74,12 @@ public class BoneThrowing : MonoBehaviour {
 				this.transform.Rotate (new Vector3 (0, 0, -rotation));
 		}
 
-		if (Input.GetMouseButtonDown (0) && ReadyToThrow) {
-			mouseXi = Input.mousePosition.x;
-			mouseYi = Input.mousePosition.y;
-			TimeStartThrow = Time.time;
-		}
-
-		if (Input.GetMouseButtonUp (0) && ReadyToThrow) {
-			if(grounded == true && Mathf.Abs(bone.velocity.x) < 0.01)
-			{
-				float timeDelta = Mathf.Lerp(MinTimeDelta,MaxTimeDelta,Time.time-TimeStartThrow);
-				jumpForcex = (Input.mousePosition.x - mouseXi)*sensitivity/timeDelta;
-				jumpForcey = (Input.mousePosition.y - mouseYi)*sensitivity/timeDelta;
-				if(jumpForcey < 1) jumpForcey = 1;	//updating ground
+		if (Input.GetMouseButtonUp (0) && ReadyToThrow && throwing) {
+			if (grounded == true && Mathf.Abs (bone.velocity.x) < 0.01) {
+				float timeDelta = Mathf.Lerp (MinTimeDelta, MaxTimeDelta, Time.time - TimeStartThrow);
+				jumpForcex = (Input.mousePosition.x - mouseXi) * sensitivity / timeDelta;
+				jumpForcey = (Input.mousePosition.y - mouseYi) * sensitivity / timeDelta;
+				throwing = false;
 			}
 		}
 

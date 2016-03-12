@@ -4,11 +4,12 @@ using System.Collections;
 public class CameraHandle : MonoBehaviour {
 
 	public GameObject background;
+
 	public const float SENSITIVITY = 3f;
 	public const float MINZOOM = 2.7f;
 	public const float MAXZOOM = 6.5f;
 	private const float ZOOMSPEED = 5.0f;
-	private const float TRANSLATESPEED = 2.5f;
+	private const float TRANSLATESPEED = 5.0f;
 
 	private float scroll;
 	private float scrollTarget;
@@ -23,6 +24,8 @@ public class CameraHandle : MonoBehaviour {
 	private float BGleftBound,CameraLeftBound;
 	private float BGtopBound,CameraTopBound;
 	private float BGbottomBound,CameraBottomBound;
+	
+	public BoneThrowing bone;
 
 	void Start() {
 
@@ -84,8 +87,22 @@ public class CameraHandle : MonoBehaviour {
 		return OutOfBound;
 	}
 
+	void updateAndCorrectScreen(){
+		if(Mathf.Abs(transform.position.x - newX) > 0.5f || Mathf.Abs(transform.position.y - newY) > 0.5f)
+		{
+			transform.localPosition = new Vector3 (Mathf.Lerp(transform.position.x,newX,Time.deltaTime*TRANSLATESPEED), 
+			                                       Mathf.Lerp(transform.position.y,newY,Time.deltaTime*TRANSLATESPEED), 
+			                                       transform.position.z);
+			CorrectBound (true);
+		}
+	}
+
 	// Update is called once per frame
 	void Update () {
+
+		if (Input.GetKeyDown (KeyCode.Escape)) {
+			Application.Quit();
+		}
 
 		if (!Input.touchSupported) {
 			//Zooming
@@ -109,29 +126,28 @@ public class CameraHandle : MonoBehaviour {
 			}
 			 
 			//Translating by Pressing and Releasing ScrollWheel
-			if (Input.GetMouseButtonUp (2)) {
+			if (Input.GetMouseButtonUp (0)) {
 				translating = false;
-			} else if (Input.GetMouseButtonDown (2)) {
+			} else if (Input.GetMouseButtonDown (0) && !bone.throwing) {
 				translating = true;
 			} else if(translating){
-				newX = transform.position.x + Input.GetAxis ("Mouse X")*TRANSLATESPEED;
-				newY = transform.position.y + Input.GetAxis ("Mouse Y")*TRANSLATESPEED;
+				newX = transform.position.x - Input.GetAxis ("Mouse X")*TRANSLATESPEED;
+				newY = transform.position.y - Input.GetAxis ("Mouse Y")*TRANSLATESPEED;
 			}
 
-			if(Mathf.Abs(transform.position.x - newX) > 0.1f || Mathf.Abs(transform.position.y - newY) > 0.1f)
-			{
-				originalPosition = transform.position;
-				transform.localPosition = new Vector3 (Mathf.Lerp(transform.position.x,newX,Time.deltaTime*TRANSLATESPEED), 
-				                                       Mathf.Lerp(transform.position.y,newY,Time.deltaTime*TRANSLATESPEED), 
-				                                       transform.position.z);
-				if (CorrectBound (false))
-					transform.localPosition = originalPosition;
-			}
+			updateAndCorrectScreen();
 
 		} else {
-			if(Input.touchCount == 2){
+
+			if(Input.touchCount == 1 && !bone.throwing){
 				translating = true;
-				originalPosition = transform.position;
+				Touch touch0 = Input.GetTouch(0);
+				newX = transform.position.x - touch0.deltaPosition.x/(TRANSLATESPEED/2);
+				newY = transform.position.y - touch0.deltaPosition.y/(TRANSLATESPEED/2);
+
+			}
+			else if(Input.touchCount == 2){
+				translating = true;
 				Touch touch0 = Input.GetTouch(0);
 				Touch touch1 = Input.GetTouch(1);
 
@@ -142,8 +158,10 @@ public class CameraHandle : MonoBehaviour {
 				if(Mathf.Abs(touch0.deltaPosition.x - touch1.deltaPosition.x) < translateTolerance.x &&
 				   Mathf.Abs(touch0.deltaPosition.y - touch1.deltaPosition.y) < translateTolerance.y)
 				{
+					/*
 					newX = transform.position.x + touch0.deltaPosition.x * TRANSLATESPEED;
 					newY = transform.position.y + touch1.deltaPosition.y * TRANSLATESPEED;
+					*/
 				}
 				//else is zooming.
 				else {
@@ -171,14 +189,7 @@ public class CameraHandle : MonoBehaviour {
 				translating = false;
 			}
 
-			if(Mathf.Abs(transform.position.x - newX) > 0.1f || Mathf.Abs(transform.position.y - newY) > 0.1f){
-				originalPosition = transform.position;
-				transform.localPosition = new Vector3 (Mathf.Lerp(transform.position.x,newX,Time.deltaTime), 
-				                                       Mathf.Lerp(transform.position.y,newY,Time.deltaTime), 
-				                                       transform.position.z);
-				if (CorrectBound (false))
-					transform.localPosition = originalPosition;
-			}
+			updateAndCorrectScreen();
 		}
 
 	}

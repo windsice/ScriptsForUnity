@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using System;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
+//using UnityEngine.Advertisements;
 
 public class Dog : MonoBehaviour {
 
@@ -42,6 +43,7 @@ public class Dog : MonoBehaviour {
 	private const int MAXLEVEL = 10;
 	private const int SCORESINLEVEL = 3;
 	private const float LEVELHEIGHT = 0.8f;
+	private int adsCount = 5;
 
 	void Start(){
 		anim = GetComponent<Animator>();
@@ -58,6 +60,12 @@ public class Dog : MonoBehaviour {
 	}
 	
 	public void reStart(){
+		adsCount++;
+//		if (Advertisement.IsReady () && adsCount >= (10 + bestScore/2)) {
+		if (adsCount >= (10 + bestScore/2)) {
+			//Advertisement.Show ();
+			adsCount = 0;
+		}
 		bone.transform.position = new Vector3 (Randomized_X, -3.35f, bone.transform.position.z);
 		transform.position = new Vector3 (Randomized_X, -7.635269f, transform.position.z);
 		score = -1;
@@ -175,6 +183,7 @@ public class Dog : MonoBehaviour {
 		FileStream file = File.Open (dataPath, FileMode.OpenOrCreate);
 
 		PlayerData data = new PlayerData ();
+		data.adsCount = adsCount;
 		data.score = bestScore;
 		bf.Serialize(file,data);
 		file.Close();
@@ -187,6 +196,7 @@ public class Dog : MonoBehaviour {
 			PlayerData data = (PlayerData)bf.Deserialize(file);
 			file.Close();
 
+			adsCount = data.adsCount;
 			bestScore = data.score;
 		}
 	}
@@ -195,4 +205,5 @@ public class Dog : MonoBehaviour {
 [Serializable]
 class PlayerData{
 	public int score;
+	public int adsCount;
 }
